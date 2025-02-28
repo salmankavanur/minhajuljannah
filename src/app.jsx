@@ -4,7 +4,6 @@ import "./style.scss";
 
 import {
   AiFillCamera,
-  AiFillCloseCircle,
   AiOutlineCamera,
   AiOutlineClose,
   AiOutlineDownload,
@@ -36,17 +35,19 @@ export function App(props) {
   const [PreviewAct, setPreviewAct] = useState(null);
   const [Name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [userId] = useState(Date.now());
+  const [userId, setUserId] = useState(null);
 
   bg.src = "./bg.png";
   bg.onload = () => {
     setBgLoadStatus(1);
+    console.log("Background image loaded");
   };
 
   let CroppedImgTag = new Image();
   CroppedImgTag.src = CroppedImg;
   CroppedImgTag.onload = () => {
     setCroppedImgStatus(1);
+    console.log("Cropped image loaded");
   };
 
   let _canv = document.createElement("canvas");
@@ -61,9 +62,20 @@ export function App(props) {
     }
   }, [CroppedImgStatus, Name]);
 
-  function saveUserData() {
+  // UseEffect to save user data after GeneratedData is set
+  useEffect(() => {
+    if (GeneratedData) {
+      saveUserData();
+    }
+  }, [GeneratedData]);
+
+  const saveUserData = async () => {
+    if (!GeneratedData) {
+      console.error("GeneratedData is not set yet");
+      return;
+    }
+
     const userData = {
-      id: userId,
       name: Name,
       email: `${Name.toLowerCase().replace(' ', '.')}@example.com`,
       created: new Date().toISOString(),
@@ -73,20 +85,40 @@ export function App(props) {
       posterUrl: GeneratedData
     };
 
-    const existingUsers = JSON.parse(localStorage.getItem('campaignUsers') || '[]');
-    const updatedUsers = [...existingUsers, userData];
-    localStorage.setItem('campaignUsers', JSON.stringify(updatedUsers));
-  }
+    console.log('Saving user data:', {
+      ...userData,
+      posterUrl: userData.posterUrl.substring(0, 50) + "..." // Log only part of the base64 string
+    });
 
-  function getDeviceType() {
+    try {
+      const response = await fetch('http://localhost:5000/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to save user: ${response.status} - ${errorText}`);
+      }
+      const savedUser = await response.json();
+      setUserId(savedUser._id);
+      console.log('User saved to MongoDB:', savedUser);
+    } catch (err) {
+      console.error('Error saving user to MongoDB:', err.message);
+      console.error('Error details:', err);
+    }
+  };
+
+  const getDeviceType = () => {
     const ua = navigator.userAgent;
     if (/mobile/i.test(ua)) return 'Mobile';
     if (/tablet/i.test(ua)) return 'Tablet';
     return 'Desktop';
-  }
+  };
 
-  function draw() {
+  const draw = () => {
     if (BgLoadStatus && CroppedImgStatus) {
+      console.log("Drawing canvas...");
       _ctx.clearRect(0, 0, DocW, DocH);
       _ctx.drawImage(CroppedImgTag, Cropx, Cropy);
       _ctx.drawImage(bg, 0, 0);
@@ -98,22 +130,39 @@ export function App(props) {
       _ctx.shadowBlur = 5;
       _ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
       _ctx.fillText(_name, Cropx + CropW / 2 - txtW / 2, Cropy + CropH + 50);
-      
+
       const dataUrl = _canv.toDataURL("image/jpeg");
       setGeneratedData(dataUrl);
       setIsLoading(false);
-      
-      saveUserData();
+      console.log("GeneratedData set:", dataUrl.substring(0, 50) + "...");
+    } else {
+      console.log("Draw failed - Missing:", { BgLoadStatus, CroppedImgStatus });
+      setIsLoading(false);
     }
-  }
+  };
 
-  function updateShareStatus() {
-    const users = JSON.parse(localStorage.getItem('campaignUsers') || '[]');
-    const updatedUsers = users.map(user => 
-      user.id === userId ? { ...user, shared: true } : user
-    );
-    localStorage.setItem('campaignUsers', JSON.stringify(updatedUsers));
-  }
+  const updateShareStatus = async () => {
+    if (!userId) {
+      console.warn('No userId available to update share status');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shared: true })
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to update share status: ${response.status} - ${errorText}`);
+      }
+      console.log('Share status updated in MongoDB');
+    } catch (err) {
+      console.error('Error updating share status:', err.message);
+      console.error('Error details:', err);
+    }
+  };
 
   file.type = "file";
   file.accept = "image/*";
@@ -121,16 +170,17 @@ export function App(props) {
   file.onchange = () => {
     let _file = file.files[0];
     if (!_file) return;
-    
+
     let fileReader = new FileReader();
     fileReader.readAsDataURL(_file);
     fileReader.onload = () => {
       Img = fileReader.result;
+      console.log("Image file loaded");
       Crop();
     };
   };
 
-  function Crop() {
+  const Crop = () => {
     setcropVis(true);
     c = new Croppie(CropArea, {
       url: Img,
@@ -144,13 +194,15 @@ export function App(props) {
       },
       enableOrientation: true
     });
-  }
+    console.log("Cropper initialized");
+  };
 
-  function rotateImage() {
+  const rotateImage = () => {
     c.rotate(90);
-  }
+    console.log("Image rotated");
+  };
 
-  function Preview() {
+  const Preview = () => {
     return (
       <>
         {PreviewAct && (
@@ -165,9 +217,9 @@ export function App(props) {
                 <AiOutlineClose size="24" />
               </button>
               <img src={GeneratedData} alt="Preview" />
-              <a 
-                href={GeneratedData} 
-                download="campaign-poster.jpg" 
+              <a
+                href={GeneratedData}
+                download="campaign-poster.jpg"
                 className="download-preview-btn"
                 onClick={updateShareStatus}
               >
@@ -179,7 +231,7 @@ export function App(props) {
         )}
       </>
     );
-  }
+  };
 
   return (
     <div className="modern-app">
@@ -237,9 +289,9 @@ export function App(props) {
               </div>
 
               <div className="action-buttons">
-                <a 
-                  href={GeneratedData} 
-                  download="campaign-poster.jpg" 
+                <a
+                  href={GeneratedData}
+                  download="campaign-poster.jpg"
                   className="download-btn"
                   onClick={updateShareStatus}
                 >
@@ -299,9 +351,12 @@ export function App(props) {
                   format: 'jpeg',
                   quality: 1
                 }).then((e) => {
+                  console.log("Crop applied, setting CroppedImg");
                   setCroppedImg(e);
                   c.destroy();
                   setcropVis(false);
+                }).catch(err => {
+                  console.error("Error cropping image:", err);
                 });
               }}
               className="apply-btn"

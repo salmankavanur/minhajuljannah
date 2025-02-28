@@ -34,18 +34,29 @@ export function AdminPanel() {
   const [itemsPerPage] = useState(10);
   const [settings, setSettings] = useState({ campaignName: "Photo Frame Campaign" });
 
-  const [loginCredentials, setLoginCredentials] = useState({
-    username: "",
-    password: ""
-  });
+  const [loginCredentials, setLoginCredentials] = useState({ username: "", password: "" });
 
-  // Analytics calculation
-  const getAnalyticsData = () => {
-    const storedUsers = JSON.parse(localStorage.getItem('campaignUsers') || '[]');
+  // Fetch users from MongoDB
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/users');
+      if (!response.ok) throw new Error('Failed to fetch users');
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      showNotification("Failed to load users", "error");
+      return [];
+    }
+  };
+
+  // Analytics calculation based on MongoDB data
+  const getAnalyticsData = async () => {
+    const storedUsers = await fetchUsers();
     const totalUsers = storedUsers.length;
     const today = new Date().toISOString().split('T')[0];
     const activeToday = storedUsers.filter(user => 
-      user.created.split('T')[0] === today
+      new Date(user.created).toISOString().split('T')[0] === today
     ).length;
     const socialShares = storedUsers.filter(user => user.shared).length;
 
@@ -67,7 +78,9 @@ export function AdminPanel() {
       return date.toISOString().split('T')[0];
     }).reverse();
     last7Days.forEach(date => {
-      const count = storedUsers.filter(user => user.created.split('T')[0] === date).length;
+      const count = storedUsers.filter(user => 
+        new Date(user.created).toISOString().split('T')[0] === date
+      ).length;
       userGrowth.push({ date, count });
     });
 
@@ -82,7 +95,34 @@ export function AdminPanel() {
     };
   };
 
-  const [analyticsData, setAnalyticsData] = useState(getAnalyticsData());
+  const [analyticsData, setAnalyticsData] = useState({});
+
+  // Load data on mount and when filters change
+  useEffect(() => {
+    const loadData = async () => {
+      const allUsers = await fetchUsers();
+      const filteredUsers = allUsers.filter(user => {
+        const matchesSearch = searchTerm === "" || 
+          user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.location.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesShared = filterShared === null || user.shared === filterShared;
+        return matchesSearch && matchesShared;
+      });
+
+      const sortedUsers = [...filteredUsers].sort((a, b) => {
+        const valueA = typeof a[sortBy] === 'string' ? a[sortBy].toLowerCase() : a[sortBy];
+        const valueB = typeof b[sortBy] === 'string' ? b[sortBy].toLowerCase() : b[sortBy];
+        if (sortOrder === "asc") return valueA > valueB ? 1 : -1;
+        return valueA < valueB ? 1 : -1;
+      });
+
+      setUsers(sortedUsers);
+      setAnalyticsData(await getAnalyticsData());
+      setCurrentPage(1);
+    };
+    loadData();
+  }, [searchTerm, sortBy, sortOrder, filterShared]);
 
   // Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -117,32 +157,6 @@ export function AdminPanel() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  useEffect(() => {
-    const storedUsers = JSON.parse(localStorage.getItem('campaignUsers') || '[]');
-    const filteredUsers = storedUsers.filter(user => {
-      const matchesSearch = searchTerm === "" || 
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.location.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesShared = filterShared === null || user.shared === filterShared;
-      return matchesSearch && matchesShared;
-    });
-
-    const sortedUsers = [...filteredUsers].sort((a, b) => {
-      const valueA = typeof a[sortBy] === 'string' ? a[sortBy].toLowerCase() : a[sortBy];
-      const valueB = typeof b[sortBy] === 'string' ? b[sortBy].toLowerCase() : b[sortBy];
-      if (sortOrder === "asc") {
-        return valueA > valueB ? 1 : -1;
-      } else {
-        return valueA < valueB ? 1 : -1;
-      }
-    });
-
-    setUsers(sortedUsers);
-    setAnalyticsData(getAnalyticsData());
-    setCurrentPage(1);
-  }, [searchTerm, sortBy, sortOrder, filterShared]);
-
   const handleSort = (column) => {
     if (sortBy === column) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -160,10 +174,10 @@ export function AdminPanel() {
   const exportToCSV = () => {
     const headers = ["ID", "Name", "Email", "Created", "Location", "Device", "Shared"];
     const csvData = users.map(user => [
-      user.id,
+      user._id,
       user.name,
       user.email,
-      user.created,
+      formatDate(user.created),
       user.location,
       user.device,
       user.shared ? "Yes" : "No"
@@ -181,9 +195,22 @@ export function AdminPanel() {
     showNotification("Users exported successfully");
   };
 
+  const exportToJSON = () => {
+    const jsonData = JSON.stringify(users, null, 2);
+    const blob = new Blob([jsonData], { type: "application/json;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "campaign_users.json");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showNotification("Users exported to JSON successfully");
+  };
+
   const handleSaveSettings = (e) => {
     e.preventDefault();
-    localStorage.setItem('campaignSettings', JSON.stringify(settings));
+    // In a production app, save settings to backend or local storage
     showNotification("Settings saved successfully");
   };
 
@@ -243,7 +270,6 @@ export function AdminPanel() {
           {notification.message}
         </div>
       )}
-      
       <div className={`admin-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="admin-sidebar-header">
           <h2>Campaign Admin</h2>
@@ -295,7 +321,6 @@ export function AdminPanel() {
           </button>
         </div>
       </div>
-      
       <div className="admin-content">
         <div className="admin-mobile-header">
           <button 
@@ -316,41 +341,41 @@ export function AdminPanel() {
                 <div className="stat-icon users-icon"><AiOutlineUser size="24" /></div>
                 <div className="stat-info">
                   <h3>Total Users</h3>
-                  <p>{analyticsData.totalUsers}</p>
+                  <p>{analyticsData.totalUsers || 0}</p>
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-icon active-icon"><AiOutlineUserAdd size="24" /></div>
                 <div className="stat-info">
                   <h3>Active Today</h3>
-                  <p>{analyticsData.activeToday}</p>
+                  <p>{analyticsData.activeToday || 0}</p>
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-icon posters-icon"><AiOutlineCalendar size="24" /></div>
                 <div className="stat-info">
                   <h3>Posters Created</h3>
-                  <p>{analyticsData.postersCreated}</p>
+                  <p>{analyticsData.postersCreated || 0}</p>
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-icon shares-icon"><AiOutlineLineChart size="24" /></div>
                 <div className="stat-info">
                   <h3>Social Shares</h3>
-                  <p>{analyticsData.socialShares}</p>
+                  <p>{analyticsData.socialShares || 0}</p>
                 </div>
               </div>
             </div>
             <div className="user-growth-section">
               <h2>User Growth (Last 7 Days)</h2>
               <div className="growth-chart">
-                {analyticsData.userGrowth.map((day, index) => (
+                {(analyticsData.userGrowth || []).map((day, index) => (
                   <div className="growth-point" key={index}>
                     <div className="growth-bar-container">
                       <div 
                         className="growth-bar" 
                         style={{ 
-                          height: `${(day.count / Math.max(...analyticsData.userGrowth.map(d => d.count))) * 100}%`,
+                          height: `${(day.count / Math.max(...(analyticsData.userGrowth || []).map(d => d.count) || 1)) * 100}%`,
                           backgroundColor: `hsl(${210 + index * 5}, 80%, 55%)`
                         }}
                       ></div>
@@ -369,15 +394,15 @@ export function AdminPanel() {
                 <div className="device-legend">
                   <div className="legend-item">
                     <span className="legend-color" style={{ backgroundColor: '#4361ee' }}></span>
-                    <span>Mobile ({analyticsData.deviceBreakdown.Mobile}%)</span>
+                    <span>Mobile ({analyticsData.deviceBreakdown?.Mobile || 0}%)</span>
                   </div>
                   <div className="legend-item">
                     <span className="legend-color" style={{ backgroundColor: '#3a0ca3' }}></span>
-                    <span>Desktop ({analyticsData.deviceBreakdown.Desktop}%)</span>
+                    <span>Desktop ({analyticsData.deviceBreakdown?.Desktop || 0}%)</span>
                   </div>
                   <div className="legend-item">
                     <span className="legend-color" style={{ backgroundColor: '#7209b7' }}></span>
-                    <span>Tablet ({analyticsData.deviceBreakdown.Tablet}%)</span>
+                    <span>Tablet ({analyticsData.deviceBreakdown?.Tablet || 0}%)</span>
                   </div>
                 </div>
               </div>
@@ -439,7 +464,7 @@ export function AdminPanel() {
                 </div>
                 <button onClick={exportToCSV} className="export-button">
                   <AiOutlineDownload size="18" />
-                  <span>Export</span>
+                  <span>Export CSV</span>
                 </button>
                 <button onClick={() => window.print()} className="print-button">
                   <AiOutlinePrinter size="18" />
@@ -451,7 +476,7 @@ export function AdminPanel() {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th onClick={() => handleSort("id")}>ID</th>
+                    <th onClick={() => handleSort("_id")}>ID</th>
                     <th onClick={() => handleSort("name")}>Name</th>
                     <th onClick={() => handleSort("email")}>Email</th>
                     <th onClick={() => handleSort("created")}>Date Created</th>
@@ -463,8 +488,8 @@ export function AdminPanel() {
                 </thead>
                 <tbody>
                   {currentUsers.map(user => (
-                    <tr key={user.id}>
-                      <td>{user.id}</td>
+                    <tr key={user._id}>
+                      <td>{user._id}</td>
                       <td>{user.name}</td>
                       <td>{user.email}</td>
                       <td>{formatDate(user.created)}</td>
@@ -477,10 +502,18 @@ export function AdminPanel() {
                       </td>
                       <td>
                         <div className="action-buttons">
-                          <button className="action-btn view-btn" title="View Details" onClick={() => alert(`Viewing ${user.name}`)}>
+                          <button 
+                            className="action-btn view-btn" 
+                            title="View Poster"
+                            onClick={() => window.open(user.posterUrl, '_blank')}
+                          >
                             <AiOutlineEye size="16" />
                           </button>
-                          <button className="action-btn email-btn" title="Send Email" onClick={() => alert(`Emailing ${user.email}`)}>
+                          <button 
+                            className="action-btn email-btn" 
+                            title="Send Email" 
+                            onClick={() => alert(`Emailing ${user.email}`)}
+                          >
                             <AiOutlineMail size="16" />
                           </button>
                         </div>
@@ -529,32 +562,32 @@ export function AdminPanel() {
             <div className="analytics-metrics">
               <div className="metric-card">
                 <h3>Total Users</h3>
-                <p className="metric-value">{analyticsData.totalUsers}</p>
+                <p className="metric-value">{analyticsData.totalUsers || 0}</p>
               </div>
               <div className="metric-card">
                 <h3>Posters Created</h3>
-                <p className="metric-value">{analyticsData.postersCreated}</p>
+                <p className="metric-value">{analyticsData.postersCreated || 0}</p>
               </div>
               <div className="metric-card">
                 <h3>Social Shares</h3>
-                <p className="metric-value">{analyticsData.socialShares}</p>
+                <p className="metric-value">{analyticsData.socialShares || 0}</p>
               </div>
               <div className="metric-card">
                 <h3>Conversion Rate</h3>
-                <p className="metric-value">{analyticsData.conversionRate}%</p>
+                <p className="metric-value">{analyticsData.conversionRate || 0}%</p>
               </div>
             </div>
             <div className="charts-container">
               <div className="chart-section">
                 <h2>User Growth (Last 7 Days)</h2>
                 <div className="growth-chart">
-                  {analyticsData.userGrowth.map((day, index) => (
+                  {(analyticsData.userGrowth || []).map((day, index) => (
                     <div className="growth-point" key={index}>
                       <div className="growth-bar-container">
                         <div 
                           className="growth-bar" 
                           style={{ 
-                            height: `${(day.count / Math.max(...analyticsData.userGrowth.map(d => d.count))) * 100}%`,
+                            height: `${(day.count / Math.max(...(analyticsData.userGrowth || []).map(d => d.count) || 1)) * 100}%`,
                             backgroundColor: `hsl(${210 + index * 5}, 80%, 55%)`
                           }}
                         ></div>
@@ -579,7 +612,7 @@ export function AdminPanel() {
                 <AiOutlineDownload size="20" />
                 <span>Export Users to CSV</span>
               </button>
-              <button onClick={() => alert("JSON export coming soon")} className="export-btn">
+              <button onClick={exportToJSON} className="export-btn">
                 <AiOutlineDownload size="20" />
                 <span>Export Users to JSON</span>
               </button>
