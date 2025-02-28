@@ -139,7 +139,9 @@ export function AdminPanel() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (loginCredentials.username === "admin" && loginCredentials.password === "password") {
+    const adminUsername = import.meta.env.VITE_ADMIN_USERNAME || 'admin'; // Fallback to 'admin' if not set
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || 'password'; // Fallback to 'password' if not set
+    if (loginCredentials.username === adminUsername && loginCredentials.password === adminPassword) {
       setIsAuthenticated(true);
       setLoginError("");
     } else {
