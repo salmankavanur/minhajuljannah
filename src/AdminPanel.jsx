@@ -19,6 +19,8 @@ import {
   AiOutlineDelete,
   AiOutlineReload,
   AiOutlineCalendar as AiOutlineDate,
+  AiOutlineLeft,
+  AiOutlineRight,
 } from "react-icons/ai";
 import { IoSunny, IoMoon } from "react-icons/io5";
 import { Line, Pie } from "react-chartjs-2";
@@ -71,6 +73,7 @@ export function AdminPanel() {
     startDate: subDays(new Date(), 7).toISOString().split("T")[0],
     endDate: new Date().toISOString().split("T")[0],
   });
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true); // New state for sidebar
 
   const [loginCredentials, setLoginCredentials] = useState({ username: "", password: "" });
 
@@ -263,7 +266,7 @@ export function AdminPanel() {
   const handleLogin = (e) => {
     e.preventDefault();
     const adminUsername = import.meta.env.VITE_ADMIN_USERNAME || "admin";
-    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || "password"; 
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || "password";
 
     if (
       loginCredentials.username === adminUsername &&
@@ -358,6 +361,10 @@ export function AdminPanel() {
     document.documentElement.setAttribute("data-theme", newTheme);
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarExpanded(!isSidebarExpanded);
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="admin-login-container">
@@ -409,58 +416,66 @@ export function AdminPanel() {
           {notification.message}
         </div>
       )}
-      <div className={`admin-sidebar ${isMobileMenuOpen ? "mobile-open" : ""}`}>
-        <div className="admin-sidebar-header">
-          <h2>Campaign Admin</h2>
-          <button
-            className="mobile-close-menu"
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <AiOutlineClose size="24" />
-          </button>
-        </div>
-        <nav className="admin-nav">
-          <ul>
-            <li className={activeTab === "dashboard" ? "active" : ""}>
-              <a href="#dashboard" onClick={() => setActiveTab("dashboard")}>
-                <AiOutlineDashboard size="20" />
-                <span>Dashboard</span>
-              </a>
-            </li>
-            <li className={activeTab === "users" ? "active" : ""}>
-              <a href="#users" onClick={() => setActiveTab("users")}>
-                <AiOutlineUser size="20" />
-                <span>Users</span>
-              </a>
-            </li>
-            <li className={activeTab === "analytics" ? "active" : ""}>
-              <a href="#analytics" onClick={() => setActiveTab("analytics")}>
-                <AiOutlineLineChart size="20" />
-                <span>Analytics</span>
-              </a>
-            </li>
-            <li className={activeTab === "export" ? "active" : ""}>
-              <a href="#export" onClick={() => setActiveTab("export")}>
-                <AiOutlineExport size="20" />
-                <span>Export Data</span>
-              </a>
-            </li>
-            <li className={activeTab === "settings" ? "active" : ""}>
-              <a href="#settings" onClick={() => setActiveTab("settings")}>
-                <AiOutlineSetting size="20" />
-                <span>Settings</span>
-              </a>
-            </li>
-          </ul>
-        </nav>
-        <div className="admin-sidebar-footer">
-          <button onClick={handleLogout} className="logout-button">
-            <AiOutlineLogout size="20" />
-            <span>Log Out</span>
-          </button>
-        </div>
-      </div>
-      <div className="admin-content">
+      <div className={`admin-sidebar ${isMobileMenuOpen ? "mobile-open" : ""} ${isSidebarExpanded ? "expanded" : "collapsed"}`}>
+  <div className="admin-sidebar-header">
+    {isSidebarExpanded && <h2>Campaign Admin</h2>}
+    <button
+      className="sidebar-toggle-button"
+      onClick={toggleSidebar}
+      title={isSidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
+    >
+      {isSidebarExpanded ? <AiOutlineLeft size="20" /> : <AiOutlineRight size="20" />}
+    </button>
+    {/* Show the close button only in mobile view */}
+    <button
+      className="mobile-close-menu"
+      onClick={() => setIsMobileMenuOpen(false)}
+    >
+      <AiOutlineClose size="24" />
+    </button>
+  </div>
+  <nav className="admin-nav">
+    <ul>
+      <li className={activeTab === "dashboard" ? "active" : ""}>
+        <a href="#dashboard" onClick={() => setActiveTab("dashboard")} title="Dashboard">
+          <AiOutlineDashboard size="20" />
+          {isSidebarExpanded && <span>Dashboard</span>}
+        </a>
+      </li>
+      <li className={activeTab === "users" ? "active" : ""}>
+        <a href="#users" onClick={() => setActiveTab("users")} title="Users">
+          <AiOutlineUser size="20" />
+          {isSidebarExpanded && <span>Users</span>}
+        </a>
+      </li>
+      <li className={activeTab === "analytics" ? "active" : ""}>
+        <a href="#analytics" onClick={() => setActiveTab("analytics")} title="Analytics">
+          <AiOutlineLineChart size="20" />
+          {isSidebarExpanded && <span>Analytics</span>}
+        </a>
+      </li>
+      <li className={activeTab === "export" ? "active" : ""}>
+        <a href="#export" onClick={() => setActiveTab("export")} title="Export Data">
+          <AiOutlineExport size="20" />
+          {isSidebarExpanded && <span>Export Data</span>}
+        </a>
+      </li>
+      <li className={activeTab === "settings" ? "active" : ""}>
+        <a href="#settings" onClick={() => setActiveTab("settings")} title="Settings">
+          <AiOutlineSetting size="20" />
+          {isSidebarExpanded && <span>Settings</span>}
+        </a>
+      </li>
+    </ul>
+  </nav>
+  <div className="admin-sidebar-footer">
+    <button onClick={handleLogout} className="logout-button" title="Log Out">
+      <AiOutlineLogout size="20" />
+      {isSidebarExpanded && <span>Log Out</span>}
+    </button>
+  </div>
+</div>
+      <div className={`admin-content ${isSidebarExpanded ? "sidebar-expanded" : "sidebar-collapsed"}`}>
         <div className="admin-header">
           <div className="admin-mobile-header">
             <button
