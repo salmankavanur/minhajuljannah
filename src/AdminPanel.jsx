@@ -386,9 +386,9 @@ export function AdminPanel() {
               Sign In
             </button>
           </form>
-          <div className="admin-login-help">
+          {/* <div className="admin-login-help">
             <p>For credentials: Contact Webmaster</p>
-          </div>
+          </div> */}
         </div>
       </div>
     );
