@@ -3,12 +3,21 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const User = require('./models/User');
+const http = require('http');
+const { Server } = require('socket.io');
 
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'DELETE']
+  }
+});
+
 app.use(cors({ origin: 'http://localhost:5173' }));
-// Increase payload limit to 10MB
 app.use(express.json({ limit: '10mb' }));
 
 const PORT = process.env.PORT || 5000;
@@ -18,6 +27,14 @@ const MONGO_URI = process.env.MONGO_URI;
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
+
+// Socket.IO connection
+io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id);
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
+});
 
 // API Routes
 app.get('/api/users', async (req, res) => {
@@ -36,6 +53,7 @@ app.post('/api/users', async (req, res) => {
   try {
     const user = new User(req.body);
     await user.save();
+    io.emit('userAdded', user); // Emit event to all connected clients
     res.status(201).json(user);
   } catch (err) {
     console.error('Error saving user:', err);
@@ -48,6 +66,7 @@ app.put('/api/users/:id', async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!user) return res.status(404).json({ error: 'User not found' });
+    io.emit('userUpdated', user); // Emit update event
     res.json(user);
   } catch (err) {
     console.error('Error updating user:', err);
@@ -55,6 +74,19 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+app.delete('/api/users/:id', async (req, res) => {
+  console.log(`DELETE /api/users/${req.params.id} requested`);
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    io.emit('userDeleted', req.params.id); // Emit delete event
+    res.json({ message: 'User deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
