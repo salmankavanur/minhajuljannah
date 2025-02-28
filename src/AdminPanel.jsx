@@ -216,20 +216,28 @@ export function AdminPanel() {
 
     // Real-time updates via Socket.IO
     socket.on("userAdded", (newUser) => {
-      setUsers((prev) => [...prev, newUser]);
-      getAnalyticsData([...users, newUser]).then(setAnalyticsData);
+      setUsers((prev) => {
+        const updatedUsers = [...prev, newUser];
+        // Recalculate analytics with the updated users array
+        getAnalyticsData(updatedUsers).then(setAnalyticsData);
+        return updatedUsers;
+      });
     });
 
     socket.on("userUpdated", (updatedUser) => {
-      setUsers((prev) =>
-        prev.map((user) => (user._id === updatedUser._id ? updatedUser : user))
-      );
-      getAnalyticsData(users.map((user) => (user._id === updatedUser._id ? updatedUser : user))).then(setAnalyticsData);
+      setUsers((prev) => {
+        const updatedUsers = prev.map((user) => (user._id === updatedUser._id ? updatedUser : user));
+        getAnalyticsData(updatedUsers).then(setAnalyticsData);
+        return updatedUsers;
+      });
     });
 
     socket.on("userDeleted", (userId) => {
-      setUsers((prev) => prev.filter((user) => user._id !== userId));
-      getAnalyticsData(users.filter((user) => user._id !== userId)).then(setAnalyticsData);
+      setUsers((prev) => {
+        const updatedUsers = prev.filter((user) => user._id !== userId);
+        getAnalyticsData(updatedUsers).then(setAnalyticsData);
+        return updatedUsers;
+      });
     });
 
     return () => {
@@ -386,9 +394,9 @@ export function AdminPanel() {
               Sign In
             </button>
           </form>
-          {/* <div className="admin-login-help">
-            <p>For credentials: Contact Webmaster</p>
-          </div> */}
+          <div className="admin-login-help">
+            <p>Default credentials: Contact your administrator</p>
+          </div>
         </div>
       </div>
     );

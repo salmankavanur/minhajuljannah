@@ -53,7 +53,7 @@ app.post('/api/users', async (req, res) => {
   try {
     const user = new User(req.body);
     await user.save();
-    io.emit('userAdded', user); // Emit event to all connected clients
+    io.emit('userAdded', user);
     res.status(201).json(user);
   } catch (err) {
     console.error('Error saving user:', err);
@@ -66,7 +66,7 @@ app.put('/api/users/:id', async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    io.emit('userUpdated', user); // Emit update event
+    io.emit('userUpdated', user);
     res.json(user);
   } catch (err) {
     console.error('Error updating user:', err);
@@ -79,7 +79,7 @@ app.delete('/api/users/:id', async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
-    io.emit('userDeleted', req.params.id); // Emit delete event
+    io.emit('userDeleted', req.params.id);
     res.json({ message: 'User deleted successfully' });
   } catch (err) {
     console.error('Error deleting user:', err);
