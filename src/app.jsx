@@ -36,6 +36,7 @@ export function App(props) {
   const [PreviewAct, setPreviewAct] = useState(null);
   const [Name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userId] = useState(Date.now());
 
   bg.src = "./bg.png";
   bg.onload = () => {
@@ -60,6 +61,30 @@ export function App(props) {
     }
   }, [CroppedImgStatus, Name]);
 
+  function saveUserData() {
+    const userData = {
+      id: userId,
+      name: Name,
+      email: `${Name.toLowerCase().replace(' ', '.')}@example.com`,
+      created: new Date().toISOString(),
+      location: 'Unknown',
+      device: getDeviceType(),
+      shared: false,
+      posterUrl: GeneratedData
+    };
+
+    const existingUsers = JSON.parse(localStorage.getItem('campaignUsers') || '[]');
+    const updatedUsers = [...existingUsers, userData];
+    localStorage.setItem('campaignUsers', JSON.stringify(updatedUsers));
+  }
+
+  function getDeviceType() {
+    const ua = navigator.userAgent;
+    if (/mobile/i.test(ua)) return 'Mobile';
+    if (/tablet/i.test(ua)) return 'Tablet';
+    return 'Desktop';
+  }
+
   function draw() {
     if (BgLoadStatus && CroppedImgStatus) {
       _ctx.clearRect(0, 0, DocW, DocH);
@@ -69,15 +94,25 @@ export function App(props) {
       _ctx.fillStyle = "black";
 
       let _name = Name.toLocaleUpperCase();
-
       let txtW = _ctx.measureText(_name).width;
       _ctx.shadowBlur = 5;
       _ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-
       _ctx.fillText(_name, Cropx + CropW / 2 - txtW / 2, Cropy + CropH + 50);
-      setGeneratedData(_canv.toDataURL("image/jpeg"));
+      
+      const dataUrl = _canv.toDataURL("image/jpeg");
+      setGeneratedData(dataUrl);
       setIsLoading(false);
+      
+      saveUserData();
     }
+  }
+
+  function updateShareStatus() {
+    const users = JSON.parse(localStorage.getItem('campaignUsers') || '[]');
+    const updatedUsers = users.map(user => 
+      user.id === userId ? { ...user, shared: true } : user
+    );
+    localStorage.setItem('campaignUsers', JSON.stringify(updatedUsers));
   }
 
   file.type = "file";
@@ -88,7 +123,6 @@ export function App(props) {
     if (!_file) return;
     
     let fileReader = new FileReader();
-
     fileReader.readAsDataURL(_file);
     fileReader.onload = () => {
       Img = fileReader.result;
@@ -131,7 +165,12 @@ export function App(props) {
                 <AiOutlineClose size="24" />
               </button>
               <img src={GeneratedData} alt="Preview" />
-              <a href={GeneratedData} download="campaign-poster.jpg" className="download-preview-btn">
+              <a 
+                href={GeneratedData} 
+                download="campaign-poster.jpg" 
+                className="download-preview-btn"
+                onClick={updateShareStatus}
+              >
                 <AiOutlineDownload size="20" />
                 <span>Download</span>
               </a>
@@ -198,7 +237,12 @@ export function App(props) {
               </div>
 
               <div className="action-buttons">
-                <a href={GeneratedData} download="campaign-poster.jpg" className="download-btn">
+                <a 
+                  href={GeneratedData} 
+                  download="campaign-poster.jpg" 
+                  className="download-btn"
+                  onClick={updateShareStatus}
+                >
                   <AiOutlineDownload size="20" />
                   <span>Download</span>
                 </a>
