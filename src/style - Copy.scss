@@ -1,0 +1,252 @@
+@import url('https://fonts.googleapis.com/css2?family=Anek+Malayalam:wght@100;200;300;400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+
+
+
+.hi {
+  display: none;
+}
+.vi {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.733);
+  left: 0;
+  top: 0;
+  display: flex;
+  .Crop {
+    margin: auto;
+    width: 100vw;
+    height: 100vh;
+  }
+  .Tools {
+    position: absolute;
+    bottom: 20px; /* Add gap from the bottom */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%); /* Adjust for centering */
+    z-index: 5;
+    display: flex; /* Align buttons side by side */
+    gap: 20px; /* Space between buttons */
+  }
+
+  // Adding more style for close & crop button
+
+/* Button styles */
+.Tools button {
+  background: linear-gradient(135deg, #ff6f61, #d83a56); /* Gradient color */
+  color: #fff; /* Text color */
+  border: none; /* Remove border */
+  border-radius: 8px; /* Rounded corners */
+  padding: 12px 24px; /* Add padding */
+  font-size: 16px; /* Font size */
+  font-weight: bold; /* Bold text */
+  display: flex; /* Flexbox for alignment */
+  align-items: center; /* Center vertically */
+  gap: 10px; /* Space between icon and text */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: background 0.3s, transform 0.2s; /* Smooth transitions */
+}
+
+.Tools button:hover {
+  background: linear-gradient(135deg, #e64a19, #d32f2f); /* Darker gradient on hover */
+}
+
+.Tools button:active {
+  transform: scale(0.98); /* Slightly shrink the button on click */
+}
+
+.Tools button svg {
+  vertical-align: middle; /* Align icon with text */
+}
+
+// Adding more style for close & crop button ENDS HERE
+
+
+}
+
+body {
+  background: rgb(235, 235, 235);
+  margin: 0;
+  font-family: 'Anek Malayalam', sans-serif;
+}
+
+
+.Header {
+  display: flex;
+  margin: auto;
+  height: 60vh;
+  width: 100vw;
+  background-position: bottom;
+  background-size: cover;
+  // animation: anim 8s infinite;
+}
+
+
+.preview {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.733);
+  left: 0;
+  top: 0;
+  z-index: 50;
+  overflow: auto;
+  display: flex;
+}
+
+.preview img {
+  height: 50vh; /* Default height for mobile */
+  margin: auto;
+  border-radius: 10px;
+}
+
+/* Media query for larger screens (e.g., desktops) */
+@media (min-width: 768px) {
+  .preview img {
+    height: 100vh; /* Height for desktop */
+  }
+}
+
+
+.Cont {
+  display: flex;
+  text-align: center;
+  flex-direction: column;
+  place-items: center;
+
+  .Actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    box-sizing: border-box;
+    row-gap: 15px;
+    input {
+      background: none;
+      border: none;
+      height: 50px;
+      padding: 10px 10px;
+      font-size: 18px;
+      outline: none;
+      box-sizing: border-box;
+      border-bottom: solid 2px gray;
+      font-family: 'Poppins', sans-serif;
+    }
+    button {
+      border: none;
+      height: 50px;
+      background: #bc1f1f;
+      color: white;
+      padding: 0 20px;
+      cursor: pointer;
+      border-radius: 10px;
+    }
+  }
+
+  .process {
+    width: min(80%, 300px);
+    background: rgb(255, 255, 255);
+    margin: 20px 0;
+    border: none;
+    font-size: 20px;
+    padding: 10px 5px;
+    // position: absolute;
+    bottom: 0;
+    text-transform: uppercase;
+    cursor: pointer;
+    &.dis {
+      color: gray;
+      &:hover {
+        color: gray;
+        background: white;
+      }
+    }
+    &:hover {
+      background: black;
+      color: white;
+      transition: 0.6s;
+    }
+  }
+}
+
+// .GetAct {
+//   a {
+//     width: 40px;
+//   }
+//   button {
+//     border: none;
+//     color: rgb(77, 73, 112);
+//     background: white;
+//     display: inline-block;
+//     width: 40px;
+//     height: 40px;
+//     margin: 10px;
+//     cursor: pointer;
+//   }
+// }
+// @keyframes anim {
+//   0% {
+//     filter: brightness(1) hue-rotate(0deg);
+//   }
+//   50% {
+//     filter: brightness(4) hue-rotate(360deg);
+//   }
+//   100% {
+//     filter: brightness(1) hue-rotate(0deg);
+//   }
+// }
+
+
+// GET ACT BUTTON STYLING
+
+.GetAct {
+  display: flex; /* Align buttons side by side */
+  gap: 20px; /* Space between buttons */
+  justify-content: center; /* Center buttons horizontally */
+  padding-top: 20px;
+}
+
+.GetAct a {
+  display: inline-block; /* Ensure the link behaves like a block for alignment */
+  text-decoration: none; /* Remove underline from links */
+}
+
+.GetAct button {
+  border: none; /* Remove border */
+  color: #fff; /* White text color */
+  background: linear-gradient(135deg, #ff6f61, #d83a56); /* Gradient background */
+  border-radius: 8px; /* Rounded corners */
+  padding: 12px 24px; /* Padding around text */
+  display: flex; /* Flexbox for alignment */
+  align-items: center; /* Center vertically */
+  gap: 10px; /* Space between icon and text */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: background 0.3s, transform 0.2s; /* Smooth transitions */
+  font-size: 16px; /* Font size */
+  font-weight: bold; /* Bold text */
+  height: 40px; /* Fixed height for buttons */
+}
+
+.GetAct button:hover {
+  background: linear-gradient(135deg, #e64a19, #d32f2f); /* Darker gradient on hover */
+}
+
+.GetAct button:active {
+  transform: scale(0.98); /* Slightly shrink the button on click */
+}
+
+.GetAct button svg {
+  vertical-align: middle; /* Align icon with text */
+}
+
+@keyframes anim {
+  0% {
+    filter: brightness(1) hue-rotate(0deg);
+  }
+  50% {
+    filter: brightness(4) hue-rotate(360deg);
+  }
+  100% {
+    filter: brightness(1) hue-rotate(0deg);
+  }
+}
